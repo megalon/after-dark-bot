@@ -191,31 +191,31 @@ function getAvatarURL(username, color){
  * @param {TextChannel} channel Channel Object
  * @param {string} content Message Content
  * @param {string} username Hook Username
- * @param {string} [avatar] Hook Avatar URL
+ * @param {string} avatarURL Hook Avatar URL
+ * @param {string[]} [files] Array of file URLs
  * @returns {Promise.<Message>}
  */
-const webhookSend = async (channel, content, username, avatar) => {
-
+const webhookSend = async (channel, content, username, avatarURL, files) => {
+    try {
     console.log("Using the webhook send function...");
 
     // List webhooks
-    let hooks = await channel.fetchWebhooks().catch(console.error);
+        let hooks = await channel.fetchWebhooks();
 
     console.log("+++++++++++++++++++++ hooks:\n" + hooks);
 
     // Create a webhook if one doesn't exist
     if (hooks.array().length === 0) {
-        await channel.createWebhook(channel.name).catch(console.error);;
+            await channel.createWebhook(channel.name);
     }
 
-    // Generate default avatar if no URL is specified
-    let avatarURL = avatar ? avatar :
-    `https://identicon-api.herokuapp.com/${username.replace(/[^a-zA-Z]/g, '')}/256?format=png`;
-
     // Update webhook list
-    let hook = (await channel.fetchWebhooks()).first().catch(console.error);;
+        let hook = (await channel.fetchWebhooks()).first();
 
-    return hook.send(content, { username, avatarURL });
+        return hook.send(content, { username, avatarURL, files });
+    } catch (err) {
+        console.error(err)
+    }
 }
 
 
