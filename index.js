@@ -50,11 +50,6 @@ client.on('typingStop', (channel, user) => {
 
 client.on('message', message => {
 
-    // Ignore Webhooks
-    if (message.webhookID !== null){
-        return;
-    }
-
     // Check that this isn't the bot itself
     if (message.author == client.user){
         return;

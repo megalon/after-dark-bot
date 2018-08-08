@@ -5,7 +5,8 @@ const Discord = require('discord.js');
 const snekfetch = require('snekfetch');
 const settings = require("../settings/settings.json");
 var utilCommands = require("./utilsmodule.js");
-const path = require('path')
+const path = require('path');
+const fileType = require('file-type');
 var Color = require('color');
 var client;
 var guild;
@@ -72,6 +73,21 @@ methods.sendMessageIndividual = function(anonSenderName, contentStripped, anonRe
 }
 
 methods.sendMessageAllChannels = function(anonSender, message, contentStripped, anonMembers){
+    // Get any http or https link
+    var regExForLinks = /http(s?)\S*/;
+    var urls = regExForLinks.exec(contentStripped);
+    console.log(urls);
+
+    methods.sendTextMessageAllChannels(anonSender, message, contentStripped, anonMembers);
+
+    // Send the embedded urls as an image
+    if(urls !== "undefined" && urls != null && urls.length > 0){
+        console.log("++++++++++ Found attachment in message text, attempting to send...");
+        sendLinkAsAttachmentByURL(anonSender, urls[0]);
+    }
+}
+
+methods.sendTextMessageAllChannels = function(anonSender, message, contentStripped, anonMembers){
     
     var text = contentStripped;
     var channelSpecificText = "";
@@ -103,7 +119,7 @@ methods.sendMessageAllChannels = function(anonSender, message, contentStripped, 
 
                 utilCommands.logMsg("Sending message from memberID:" + message.member.id + " channelID:" + channel.name);
 
-                //webhookSend(channel, channelSpecificText, anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color));
+                //webhookSend(channel, channelSpecificText, anonSender.anonName, null);
 
                 console.log("sendMessageAllChannels anonSender.anonName:" + anonSender.anonName);
                 
@@ -128,27 +144,77 @@ methods.sendMessageAllChannels = function(anonSender, message, contentStripped, 
     }
 }
 
-const reuploadImages = async (anonSender, message) => {
+function reuploadImages(anonSender, message) {
     var attachments = message.attachments;
 
     if (attachments !== "undefined" && attachments != null) {
         utilCommands.logMsg("Trying to add attachments.");
         for (attachment of attachments.array()) {
-            let { body } = await snekfetch.get(attachment.url);
-            // body is now the image buffer
-
-            // strip the file name and extension
-            // base is the filename
-            let { base } = path.parse(attachment.url)
-
-            imagesChannel.send(new Discord.Attachment(body, base))
-                .then( imageMessage =>{
-                    methods.sendAttachmentAllChannels(anonSender, imageMessage);
-                })
-                .catch(console.error);
+            console.log("Attempting to send the attachment:" + attachment.url);
+            sendAttachmentByURL(anonSender, attachment.url);
         }
     }
+}
 
+// Gross duplicate function that should be simplified
+// sendLinkAsAttachmentByURL and sendAttachmentByURL should use the same helper function
+const sendLinkAsAttachmentByURL = async (anonSender, attachmentURL) => {
+
+    // Regex to pull extension from the path
+    var regExForExtensions = /(\.[^\.]+$)/;
+
+    if (attachmentURL !== "undefined" && attachmentURL != null) {
+        utilCommands.logMsg("======== Trying to send attachmentURL " + attachmentURL);
+        let { body } = await snekfetch.get(attachmentURL);
+        // body is now the image buffer
+        //utilCommands.logMsg("======== snekfetch results: " + body);
+
+        // strip the file name and extension
+        // base is the filename
+        let { base } = path.parse(attachmentURL)
+        console.log("====== base:" + base);
+
+        var extensions = regExForExtensions.exec(base);
+        if(extensions === "undefined" || extensions == null){
+            var type = fileType(body);
+            console.log("====== type.ext:" + type.ext);
+
+            base += "." + type.ext;
+        }
+
+        console.log("====== base + type.ext:" + base);
+        
+        imagesChannel.send(new Discord.Attachment(body, base))
+            .then( imageMessage =>{
+                //utilCommands.logMsg("======== attachment: " + imageMessage);
+                methods.sendAttachmentAllChannels(anonSender, imageMessage);
+            })
+            .catch(console.error);
+    }
+}
+
+const sendAttachmentByURL = async (anonSender, attachmentURL) => {
+
+    // Regex to pull extension from the path
+    var regExForExtensions = /(\.[^\.]+$)/;
+
+    if (attachmentURL !== "undefined" && attachmentURL != null) {
+        utilCommands.logMsg("======== Trying to send attachmentURL " + attachmentURL);
+        let { body } = await snekfetch.get(attachmentURL);
+        // body is now the image buffer
+        //utilCommands.logMsg("======== snekfetch results: " + body);
+
+        // strip the file name and extension
+        // base is the filename
+        let { base } = path.parse(attachmentURL);
+        
+        imagesChannel.send(new Discord.Attachment(body, base))
+            .then( imageMessage =>{
+                //utilCommands.logMsg("======== attachment: " + imageMessage);
+                methods.sendAttachmentAllChannels(anonSender, imageMessage);
+            })
+            .catch(console.error);
+    }
 }
 
 methods.sendAttachmentAllChannels = function(anonSender, message){
@@ -169,8 +235,6 @@ methods.sendAttachmentAllChannels = function(anonSender, message){
 
             channel.send({embed: embededMessage})
                 .catch(console.error);
-
-            // webhookSend(channel, '', anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color), [attachmentUrl]);
         }
     }
 }
@@ -184,7 +248,7 @@ function getAvatarURL(username, color){
     var hex = color.hex().replace(/[^a-zA-Z0-9]/g, '');
     console.log("+++++++++ getAvatarURL color.hex():" + hex)
 
-    let avatarURL = `https://github-identicons.herokuapp.com/transparent/${username.replace(/[^a-zA-Z]/g, '')}.png?circle&color=${hex}&small`;
+    let avatarURL = `https://github-identicons.herokuapp.com/transparent/${username.replace(/[^a-zA-Z]/g, '')}?circle&color=${hex}`;
     return avatarURL;
 }
 
@@ -193,31 +257,31 @@ function getAvatarURL(username, color){
  * @param {TextChannel} channel Channel Object
  * @param {string} content Message Content
  * @param {string} username Hook Username
- * @param {string} avatarURL Hook Avatar URL
- * @param {string[]} [files] Array of file URLs
+ * @param {string} [avatar] Hook Avatar URL
  * @returns {Promise.<Message>}
  */
-const webhookSend = async (channel, content, username, avatarURL, files) => {
-    try {
-        console.log("Using the webhook send function...");
+const webhookSend = async (channel, content, username, avatar) => {
 
-        // List webhooks
-        let hooks = await channel.fetchWebhooks();
+    console.log("Using the webhook send function...");
 
-        console.log("+++++++++++++++++++++ hooks:\n" + hooks);
+    // List webhooks
+    let hooks = await channel.fetchWebhooks().catch(console.error);
 
-        // Create a webhook if one doesn't exist
-        if (hooks.array().length === 0) {
-            await channel.createWebhook(channel.name);
-        }
+    console.log("+++++++++++++++++++++ hooks:\n" + hooks);
 
-        // Update webhook list
-        let hook = (await channel.fetchWebhooks()).first();
-
-        return hook.send(content, { username, avatarURL, files });
-    } catch (err) {
-        console.error(err)
+    // Create a webhook if one doesn't exist
+    if (hooks.array().length === 0) {
+        await channel.createWebhook(channel.name).catch(console.error);;
     }
+
+    // Generate default avatar if no URL is specified
+    let avatarURL = avatar ? avatar :
+    `https://identicon-api.herokuapp.com/${username.replace(/[^a-zA-Z]/g, '')}/256?format=png`;
+
+    // Update webhook list
+    let hook = (await channel.fetchWebhooks()).first().catch(console.error);;
+
+    return hook.send(content, { username, avatarURL });
 }
 
 
