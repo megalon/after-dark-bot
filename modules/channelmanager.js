@@ -32,7 +32,7 @@ methods.addMember = function (member) {
                 allow: ['VIEW_CHANNEL','SEND_MESSAGES']
         }, {
             // Allow the bot
-            id: '471753959460175883',
+            id: client.user.id,
                 allow: ['VIEW_CHANNEL', 'MANAGE_MESSAGES', 'SEND_MESSAGES']
     }]).then(channel => {
         console.log("Trying to move channel " + channel.name + " to position: " + numChannels - 1);
