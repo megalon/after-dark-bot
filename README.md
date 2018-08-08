@@ -14,11 +14,20 @@ Features:
  
 Usage:
 
+Install requried packages
+`npm install discord.js`
+`npm install moniker`
+
 Add your information into the `settings.json` file.
  + Bot token
  + Guild ID
  + List of admin IDs (who you want to be able to use the admin commands)
  
-Start the bot with `node index.js`
+Start the bot from commandline with `node index.js`
 
 Reset nicknames by clearing the array in the `anonNames.json` file, then restart the bot.
+
+Admin commands
+ + `!del n` Where n is the amount of messages to delete. Deletes messages from all channels
+ + `!kick username` Kicks a member based off of their anonymous username
+ + `!ban username` Bans a member based off of their anonymous username
