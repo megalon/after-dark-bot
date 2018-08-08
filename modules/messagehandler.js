@@ -5,6 +5,7 @@ const Discord = require('discord.js');
 const snekfetch = require('snekfetch');
 const settings = require("../settings/settings.json");
 var utilCommands = require("./utilsmodule.js");
+const path = require('path')
 var Color = require('color');
 var client;
 var guild;
@@ -136,7 +137,11 @@ const reuploadImages = async (anonSender, message) => {
             let { body } = await snekfetch.get(attachment.url);
             // body is now the image buffer
 
-            imagesChannel.send(new Discord.Attachment(body))
+            // strip the file name and extension
+            // base is the filename
+            let { base } = path.parse(attachment.url)
+
+            imagesChannel.send(new Discord.Attachment(body, base))
                 .then( imageMessage =>{
                     methods.sendAttachmentAllChannels(anonSender, imageMessage);
                 })
