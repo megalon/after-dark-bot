@@ -4,6 +4,7 @@ var methods = [];
 const Discord = require('discord.js');
 const settings = require("../settings/settings.json");
 var utilCommands = require("./utilsmodule.js");
+var Color = require('color');
 var client;
 var guild;
 
@@ -100,19 +101,15 @@ methods.sendMessageAllChannels = function(anonSender, message, contentStripped, 
 
                 //webhookSend(channel, channelSpecificText, anonSender.anonName, null);
 
-                console.log("anonSender.anonName:" + anonSender.anonName);
+                console.log("sendMessageAllChannels anonSender.anonName:" + anonSender.anonName);
                 
                 var embededMessage = new Discord.RichEmbed();
 
-                embededMessage.setAuthor(anonSender.anonName);
+                embededMessage.setAuthor(anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color));
                 embededMessage.setDescription(channelSpecificText);
-                embededMessage.setColor(anonSender.color);
+                embededMessage.setColor(anonSender.color.hex());
 
-                var thumbnailURL = getAvatarURL(anonSender.anonName);
-                console.log("------------------- thumbnail\n" + thumbnailURL);
-
-                embededMessage.setThumbnail(thumbnailURL);
-                //embededMessage.setTimestamp();
+                console.log("+++++++++ anonSender.color.hex():" + anonSender.color.hex())
 
                 channel.send({
                     embed: embededMessage
@@ -147,23 +144,18 @@ methods.sendAttachmentAllChannels = function(anonSender, message){
 
                     var embededMessage = new Discord.RichEmbed();
 
-                    embededMessage.setAuthor(anonSender.anonName);
+                    embededMessage.setAuthor(anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color));
                     embededMessage.setImage(attachmentUrls[0]);
-                    embededMessage.setColor(anonSender.color);
-
-                    var thumbnailURL = getAvatarURL(anonSender.anonName);
-                    console.log("------------------- thumbnail " + thumbnailURL);
-
-                    embededMessage.setThumbnail(thumbnailURL);
+                    embededMessage.setColor(anonSender.color.hex());
                     //embededMessage.setTimestamp();
 
-                    channel.send({
-                        embed: embededMessage
-                    })
+                    channel.send({embed: embededMessage})
                         .catch(console.error);
-                    }
+                }
             }
         }
+
+        // Clear attachments array
         attachmentUrls = [];
     }
 }
@@ -173,8 +165,16 @@ function getAttachmentURLs(value, key, map) {
     attachmentUrls.push(value.url);
 }
 
-function getAvatarURL(username){
-    let avatarURL = `https://identicon-api.herokuapp.com/${username.replace(/[^a-zA-Z]/g, '')}/256?format=png`;
+/**
+ * Get avatar url
+ * @param {string} username Username string
+ * @param {Color} color Color object
+ */
+function getAvatarURL(username, color){
+    var hex = color.hex().replace(/[^a-zA-Z0-9]/g, '');
+    console.log("+++++++++ getAvatarURL color.hex():" + hex)
+    //let avatarURL = `https://github-identicons.herokuapp.com/icon/${username.replace(/[^a-zA-Z]/g, '')}`;
+    let avatarURL = `https://github-identicons.herokuapp.com/transparent/${username.replace(/[^a-zA-Z]/g, '')}?circle&color=${hex}`;
     return avatarURL;
 }
 

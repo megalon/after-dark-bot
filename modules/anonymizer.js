@@ -5,6 +5,7 @@ var channelManager = require("./channelmanager.js");
 var messageHandler  = require("./messagehandler.js");
 var fs = require('fs');
 const crypto = require('crypto');
+var Color = require('color');
 
 var guild;
 
@@ -174,8 +175,14 @@ methods.getColor = function(inputString){
     .digest('hex');
 
     //console.log("Hash generated for " + inputString + " : " + hash);
-    var color = hash.substring(0, 6);
-    console.log("Color for " + inputString + " : " + color);
+    var color = Color("#"+hash.substring(0, 6));
+
+    console.log("Color for " + inputString + " : " + color.hex());
+    if(color.isDark()){
+        console.log("Color was too dark, lightening...");
+        color = color.lighten(0.5);
+        console.log("Color for " + inputString + " after lightening : " + color.hex());
+    }
 
     return color;
 }
