@@ -2,17 +2,18 @@
 
 var methods = [];
 const Discord = require('discord.js');
+const snekfetch = require('snekfetch');
 const settings = require("../settings/settings.json");
 var utilCommands = require("./utilsmodule.js");
 var Color = require('color');
 var client;
 var guild;
-
-///var dmCommands = [".pm ", ".dm "];
+var imagesChannel;
 
 methods.init = function(c, guildIn){
     client = c;
     guild = guildIn;
+    imagesChannel = guild.channels.find("name", "images");
 }
 
 methods.processMessage = function(anonSender, message, anonMembers){
@@ -23,7 +24,9 @@ methods.processMessage = function(anonSender, message, anonMembers){
     var content = utilCommands.replaceAll(message.content, "@", " ");
 
     methods.sendMessageAllChannels(anonSender, message, content, anonMembers);
-    methods.sendAttachmentAllChannels(anonSender, message);
+    reuploadImages(anonSender, message);
+
+    //methods.sendAttachmentAllChannels(anonSender, message);
 
     utilCommands.logMsg("Finished processing message in messagehandler.js");
 }
@@ -81,7 +84,7 @@ methods.sendMessageAllChannels = function(anonSender, message, contentStripped, 
             console.log("channel.name:" + channel.name);
             channelSpecificText = text;
 
-            if (channel.name != "rules" && channel.type === "text") {
+            if (channel.name != "images" && channel.type === "text") {
 
                 // Handle pings
                 for(var i=0; i < anonMembers.length; ++i){
@@ -124,45 +127,45 @@ methods.sendMessageAllChannels = function(anonSender, message, contentStripped, 
     }
 }
 
-var attachmentUrls = [];
-
-methods.sendAttachmentAllChannels = function(anonSender, message){
-    
+const reuploadImages = async (anonSender, message) => {
     var attachments = message.attachments;
 
-    // Check for attachments, then add them to the message
     if (attachments !== "undefined" && attachments != null) {
         utilCommands.logMsg("Trying to add attachments.");
-        attachments.forEach(getAttachmentURLs);
+        for (attachment of attachments.array()) {
+            let { body } = await snekfetch.get(attachment.url);
+            // body is now the image buffer
 
-        if (attachmentUrls.length > 0) {
-            for (channel of guild.channels.array()) {
-                utilCommands.logMsg("memberID:" + message.member.id + " channelID:" + channel.name + " attachments:" + attachmentUrls);
-                if (channel.name != "rules" && channel.type === "text") {
-
-                    console.log("anonSender.anonName:" + anonSender.anonName);
-
-                    var embededMessage = new Discord.RichEmbed();
-
-                    embededMessage.setAuthor(anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color));
-                    embededMessage.setImage(attachmentUrls[0]);
-                    embededMessage.setColor(anonSender.color.hex());
-                    //embededMessage.setTimestamp();
-
-                    channel.send({embed: embededMessage})
-                        .catch(console.error);
-                }
-            }
+            imagesChannel.send(new Discord.Attachment(body))
+                .then( imageMessage =>{
+                    methods.sendAttachmentAllChannels(anonSender, imageMessage);
+                })
+                .catch(console.error);
         }
-
-        // Clear attachments array
-        attachmentUrls = [];
     }
+
 }
 
-function getAttachmentURLs(value, key, map) {
-    utilCommands.logMsg(`m[${key}] = ${value.url}`);
-    attachmentUrls.push(value.url);
+methods.sendAttachmentAllChannels = function(anonSender, message){
+    var attachmentUrl = message.attachments.array()[0].url;
+
+    for (channel of guild.channels.array()) {
+        utilCommands.logMsg("memberID:" + message.member.id + " channelID:" + channel.name + " attachmentUrl:" + attachmentUrl);
+        if (channel.name != "images" && channel.type === "text") {
+
+            //console.log("anonSender.anonName:" + anonSender.anonName);
+
+            var embededMessage = new Discord.RichEmbed();
+
+            embededMessage.setAuthor(anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color));
+            embededMessage.setImage(attachmentUrl);
+            embededMessage.setColor(anonSender.color.hex());
+            //embededMessage.setTimestamp();
+
+            channel.send({embed: embededMessage})
+                .catch(console.error);
+        }
+    }
 }
 
 /**
@@ -173,7 +176,7 @@ function getAttachmentURLs(value, key, map) {
 function getAvatarURL(username, color){
     var hex = color.hex().replace(/[^a-zA-Z0-9]/g, '');
     console.log("+++++++++ getAvatarURL color.hex():" + hex)
-    //let avatarURL = `https://github-identicons.herokuapp.com/icon/${username.replace(/[^a-zA-Z]/g, '')}`;
+
     let avatarURL = `https://github-identicons.herokuapp.com/transparent/${username.replace(/[^a-zA-Z]/g, '')}?circle&color=${hex}`;
     return avatarURL;
 }

@@ -45,7 +45,7 @@ function deleteMessages(numMessages, username, commandChannelName){
         amount = 1;
 
     for (member of guild.members.array()){
-        if (channel.name != "rules" && channel.type === "text") {
+        if (channel.name != "images" && channel.type === "text") {
             
             console.log("Deleting " + amount + " messages from " + usernameText + " in channel " + channel.id);
             if(username === "undefined" || username == null){

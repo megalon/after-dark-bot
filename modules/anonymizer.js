@@ -64,7 +64,7 @@ methods.init = function(client, guildID){
             // Check if members were removed while offline
             //for (channel of guild.channels) {
             for (channel of guild.channels.array()){
-                if(!guild.members.exists('id', channel.name) && channel.name !== "rules" && channel.name !== "rules" ){
+                if(!guild.members.exists('id', channel.name) && channel.name !== "images" && channel.name !== "images" ){
                     // Channel is not needed, so delete it.
                     channel.delete()
                         .then(console.log)
@@ -128,6 +128,7 @@ methods.processMessage = function(message){
     var member = message.member;
     var anonMember = null;
 
+    // Convert member to anonMember
     console.log("Looping through anonMembers list of length " + anonMembers.length);
     for(var i = 0; i < anonMembers.length; ++i){
         console.log("member " + i + " id:" + anonMembers[i].member);
