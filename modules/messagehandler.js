@@ -103,7 +103,7 @@ methods.sendMessageAllChannels = function(anonSender, message, contentStripped, 
 
                 utilCommands.logMsg("Sending message from memberID:" + message.member.id + " channelID:" + channel.name);
 
-                //webhookSend(channel, channelSpecificText, anonSender.anonName, null);
+                //webhookSend(channel, channelSpecificText, anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color));
 
                 console.log("sendMessageAllChannels anonSender.anonName:" + anonSender.anonName);
                 
@@ -169,6 +169,8 @@ methods.sendAttachmentAllChannels = function(anonSender, message){
 
             channel.send({embed: embededMessage})
                 .catch(console.error);
+
+            // webhookSend(channel, '', anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color), [attachmentUrl]);
         }
     }
 }
@@ -182,7 +184,7 @@ function getAvatarURL(username, color){
     var hex = color.hex().replace(/[^a-zA-Z0-9]/g, '');
     console.log("+++++++++ getAvatarURL color.hex():" + hex)
 
-    let avatarURL = `https://github-identicons.herokuapp.com/transparent/${username.replace(/[^a-zA-Z]/g, '')}?circle&color=${hex}`;
+    let avatarURL = `https://github-identicons.herokuapp.com/transparent/${username.replace(/[^a-zA-Z]/g, '')}.png?circle&color=${hex}&small`;
     return avatarURL;
 }
 
@@ -197,19 +199,19 @@ function getAvatarURL(username, color){
  */
 const webhookSend = async (channel, content, username, avatarURL, files) => {
     try {
-    console.log("Using the webhook send function...");
+        console.log("Using the webhook send function...");
 
-    // List webhooks
+        // List webhooks
         let hooks = await channel.fetchWebhooks();
 
-    console.log("+++++++++++++++++++++ hooks:\n" + hooks);
+        console.log("+++++++++++++++++++++ hooks:\n" + hooks);
 
-    // Create a webhook if one doesn't exist
-    if (hooks.array().length === 0) {
+        // Create a webhook if one doesn't exist
+        if (hooks.array().length === 0) {
             await channel.createWebhook(channel.name);
-    }
+        }
 
-    // Update webhook list
+        // Update webhook list
         let hook = (await channel.fetchWebhooks()).first();
 
         return hook.send(content, { username, avatarURL, files });
