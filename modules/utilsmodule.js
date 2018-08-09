@@ -69,4 +69,29 @@ methods.replaceAll = function(str, find, replace) {
 	return str.replace(new RegExp(methods.escapeRegExp(find), 'g'), replace);
 }
 
+// Super lazy copy paste from
+// https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array#2450976
+methods.shuffleArray = function(array) {
+	console.log("Array:\n" + array);
+	var currentIndex = array.length;
+	var temporaryValue;
+	var randomIndex;
+  
+	// While there remain elements to shuffle...
+	while (0 !== currentIndex) {
+  
+		//console.log("currentIndex:" + currentIndex);
+		// Pick a remaining element...
+		randomIndex = Math.floor(Math.random() * currentIndex);
+		currentIndex -= 1;
+
+		// And swap it with the current element.
+		temporaryValue = array[currentIndex];
+		array[currentIndex] = array[randomIndex];
+		array[randomIndex] = temporaryValue;
+	}
+  
+	return array;
+}
+
 module.exports = methods;
