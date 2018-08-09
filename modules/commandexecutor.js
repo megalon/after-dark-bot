@@ -44,12 +44,11 @@ function deleteMessages(numMessages, username, commandChannelName){
     else if (amount < 1)
         amount = 1;
 
-    for (member of guild.members.array()){
-        if (channel.name != "images" && channel.type === "text") {
+    for (channel of guild.channels.array()){
+        if (channel.name != "images" && channel.name != "icons" && channel.type === "text") {
             
             console.log("Deleting " + amount + " messages from " + usernameText + " in channel " + channel.id);
             if(username === "undefined" || username == null){
-
                 if(channel.name === commandChannelName){
                     channel.bulkDelete(amount + 1)
                     .then(messages => utilCommands.logMsg(`Bulk deleted ${messages.size} messages`))

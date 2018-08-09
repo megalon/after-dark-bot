@@ -6,6 +6,8 @@ var messageHandler  = require("./messagehandler.js");
 var fs = require('fs');
 const crypto = require('crypto');
 var Color = require('color');
+const https = require('https');
+var iconUrls;
 
 var guild;
 
@@ -19,6 +21,8 @@ methods.init = function(client, guildID){
     console.log(anonMembers);
 
     guild = client.guilds.get(guildID);
+
+    var iconURLs = getIconURLs("https://assistant.moe/avatars/");
 
     // Check if members were added or removed while bot was offline
     guild.fetchMembers()
@@ -41,6 +45,7 @@ methods.init = function(client, guildID){
                 }
 
                 var foundMoniker = false;
+                var foundIcon = false;
                 // Check if the members exist in the anonnames.json file 
                 for(var i = 0; i < anonMembers.length; ++i){
 
@@ -50,7 +55,7 @@ methods.init = function(client, guildID){
 
                         anonMembers[i].color = this.getColor(anonMembers[i].anonName);
                     }
-                } 
+                }
 
                 if(!foundMoniker){
                     console.log("Didn't find moniker for member:" + member.id + " !");
@@ -73,7 +78,6 @@ methods.init = function(client, guildID){
             }
         })
         .catch(console.error);
-
 
     messageHandler.init(client, guild, anonMembers);
     channelManager.init(client, guild, anonMembers);
@@ -196,6 +200,69 @@ methods.saveNames = function(){
         if(err) {
             return console.log(err);
         }
+    });
+}
+
+
+// This is not the right way to do this but it works
+function getIconURLs(directoryURL){
+
+    if(directoryURL === "undefined" || directoryURL == null)
+        return null;
+    
+    https.get(directoryURL, (res) => {
+    const { statusCode } = res;
+    const contentType = res.headers['content-type'];
+
+    let error;
+    if (statusCode !== 200) {
+        error = new Error('Request Failed.\n' +
+                        `Status Code: ${statusCode}`);
+    }
+    if (error) {
+        console.error(error.message);
+        // consume response data to free up memory
+        res.resume();
+        return;
+    }
+
+    var regexGrabFileName = /((<tr><td class="n"><a href=")([^\"]*))/g;    
+    //var regexGrabFileName = /(<t)\S*(r>)/g;
+    var urlCharOffset = 27;
+
+    var iconURLs = [];
+
+    res.setEncoding('utf8');
+    let rawData = '';
+    res.on('data', (chunk) => { rawData += chunk; });
+    res.on('end', () => {
+        try {
+
+            //console.log(rawData);
+
+            while (match = regexGrabFileName.exec(rawData)){//regexGrabFileName.exec("<tr> <tasdfar> <tggggr> <tzzzzzzr>testing asdlf;kas<tr>whatever <tr>")) {
+                // match is now the next match, in array form.
+                var iconName = match[0].substring(urlCharOffset);
+
+                //console.log("iconName:" + iconName);
+                console.log("iconURL:" + (directoryURL + iconName));
+
+                iconURLs.push(directoryURL + iconName);
+            }
+
+            return iconURLs;
+            /*
+            for(var i=0; i < linksHTML.length; ++i){
+                console.log("linksHTML:\n" + linksHTML[i]);
+                console.log("substringed:" + linksHTML[i].substring(27));
+            }
+            */
+        } catch (e) {
+            console.error(e.message);
+        }
+    });
+    }).on('error', (e) => {
+        console.error(`Got error: ${e.message}`);
     });
 }
 

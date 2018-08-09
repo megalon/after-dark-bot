@@ -16,7 +16,7 @@ client.on('ready', () => {
 	  .then(presence => console.log(`Activity set to ${presence.game ? presence.game.name : 'none'}`))
         .catch(console.error);
 
-	guildID = settings.guild;
+    guildID = settings.guild;
 		
     anonymizer.init(client, guildID);
     commandExecutor.init(client, guildID, anonymizer);

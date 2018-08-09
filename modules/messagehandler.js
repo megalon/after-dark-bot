@@ -101,7 +101,7 @@ methods.sendTextMessageAllChannels = function(anonSender, message, contentStripp
             console.log("channel.name:" + channel.name);
             channelSpecificText = text;
 
-            if (channel.name != "images" && channel.type === "text") {
+            if (channel.name != "images" && channel.name != "icons" && channel.type === "text") {
 
                 // Handle pings
                 for(var i=0; i < anonMembers.length; ++i){
@@ -125,7 +125,12 @@ methods.sendTextMessageAllChannels = function(anonSender, message, contentStripp
                 
                 var embededMessage = new Discord.RichEmbed();
 
-                embededMessage.setAuthor(anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color));
+                if(anonSender.iconURL === "undefined" || anonSender.iconURL == null)
+                    embededMessage.setAuthor(anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color));
+                else
+                    embededMessage.setAuthor(anonSender.anonName, anonSender.iconURL);
+                //embededMessage.setThumbnail(getAvatarURL(anonSender.anonName, anonSender.color));
+                //embededMessage.setFooter("!",getAvatarURL(anonSender.anonName, anonSender.color));
                 embededMessage.setDescription(channelSpecificText);
                 embededMessage.setColor(anonSender.color.hex());
 
@@ -208,6 +213,7 @@ const sendAttachmentByURL = async (anonSender, attachmentURL) => {
         // base is the filename
         let { base } = path.parse(attachmentURL);
         
+        imagesChannel.send("`" + anonSender.anonName + "` is sending image with url\n`" + attachmentURL + "`");
         imagesChannel.send(new Discord.Attachment(body, base))
             .then( imageMessage =>{
                 //utilCommands.logMsg("======== attachment: " + imageMessage);
@@ -222,15 +228,18 @@ methods.sendAttachmentAllChannels = function(anonSender, message){
 
     for (channel of guild.channels.array()) {
         utilCommands.logMsg("memberID:" + message.member.id + " channelID:" + channel.name + " attachmentUrl:" + attachmentUrl);
-        if (channel.name != "images" && channel.type === "text") {
+        if (channel.name != "images" && channel.name != "icons" && channel.type === "text") {
 
             //console.log("anonSender.anonName:" + anonSender.anonName);
 
             var embededMessage = new Discord.RichEmbed();
 
-            embededMessage.setAuthor(anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color));
+            //if(!settings.adminIDs.includes(channel.name)){
+            //embededMessage.setAuthor(anonSender.anonName, anonSender.iconURL);//getAvatarURL(anonSender.anonName, anonSender.color));
+            //embededMessage.setColor(anonSender.color.hex());
             embededMessage.setImage(attachmentUrl);
-            embededMessage.setColor(anonSender.color.hex());
+            //embededMessage.setThumbnail(getAvatarURL(anonSender.anonName, anonSender.color));
+            //embededMessage.setFooter("!", getAvatarURL(anonSender.anonName, anonSender.color));
             //embededMessage.setTimestamp();
 
             channel.send({embed: embededMessage})
@@ -249,6 +258,14 @@ function getAvatarURL(username, color){
     console.log("+++++++++ getAvatarURL color.hex():" + hex)
 
     let avatarURL = `https://github-identicons.herokuapp.com/transparent/${username.replace(/[^a-zA-Z]/g, '')}?circle&color=${hex}`;
+    //let avatarURL = "attachment://icon-images/testicon.gif"; //"https://i.imgur.com/yXtOb5W.gif";
+    //let avatarURL = `file\\\\\\icon-images\\testicon.gif`;
+    //let avatarURL = `file:\\\\localhost\\icon-images\\testicon.gif`;
+    //let avatarURL = `file:///F:/icon-images/testicon.gif`;
+    //let avatarURL = `file:///F:\\BeatSaberModGroupDiscord\\bots\\after-dark-bot\\icon-images\\testicon.gif`;
+    //let avatarURL = `file:\\localhost\\icon-images\\testicon.gif`;
+    //let avatarURL = `file:///F:/BeatSaberModGroupDiscord/bots/after-dark-bot/testicon.gif`;
+    //let avatarURL = `file:///c:/path/to/file.png`;
     return avatarURL;
 }
 
