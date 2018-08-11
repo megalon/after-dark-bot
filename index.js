@@ -69,10 +69,14 @@ client.on('message', message => {
             parseCommand(message);
         }else{
             console.log("Message is from normal user, processing as usual...")
-            anonymizer.processMessage(message);
+            anonymizer.processMessage(message)
+                .then(function(){
+                    console.log("Finished processing message, now deleting original message...");
+                    message.delete();
+                });
         }
 
-        message.delete();
+        //message.delete();
     }
 	
 	/* Log all role ids (the only way to get role IDs)
@@ -99,10 +103,15 @@ function parseCommand(message){
     if(command != null){
         if(command !== "invalid"){
             commandExecutor.runCommand(command, commandChannelName);
+            message.delete();
         }else{
             console.log("ERROR: Invalid command in message:" + message.content);
         }
     }else{
-        anonymizer.processMessage(message);
+        anonymizer.processMessage(message)
+            .then(function(){
+                console.log("Finished processing message, now deleting original message...");
+                message.delete();
+            });
     }
 }

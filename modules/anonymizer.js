@@ -142,18 +142,20 @@ methods.removeMember = function(member){
 
 methods.processMessage = function(message){
 
-    var member = message.member;
-    var anonMember = null;
+    return new Promise(function(resolve, reject) {
+        var member = message.member;
+        var anonMember = null;
 
-    // Convert member to anonMember
-    console.log("Looping through anonMembers list of length " + anonMembers.length);
-    for(var i = 0; i < anonMembers.length; ++i){
-        console.log("member " + i + " id:" + anonMembers[i].member);
-        if(anonMembers[i].member == member.id)
-            anonMember = anonMembers[i];
-    }
+        // Convert member to anonMember
+        console.log("Looping through anonMembers list of length " + anonMembers.length);
+        for(var i = 0; i < anonMembers.length; ++i){
+            console.log("member " + i + " id:" + anonMembers[i].member);
+            if(anonMembers[i].member == member.id)
+                anonMember = anonMembers[i];
+        }
 
-    messageHandler.processMessage(anonMember, message, anonMembers);
+        resolve(messageHandler.processMessage(anonMember, message, anonMembers));
+    });
 }
 
 methods.getUserIDFromAnonName = function(name){

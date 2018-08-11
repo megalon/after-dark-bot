@@ -7,15 +7,27 @@ const settings = require("../settings/settings.json");
 var utilCommands = require("./utilsmodule.js");
 const path = require('path');
 const fileType = require('file-type');
+const fs = require('fs');
 var Color = require('color');
 var client;
 var guild;
 var imagesChannel;
+var pathToSaveFiles;
+var isWin = process.platform === "win32"; // Check if the OS is windows
 
 methods.init = function(c, guildIn){
     client = c;
     guild = guildIn;
     imagesChannel = guild.channels.find("name", "images");
+    pathToSaveFiles = settings.pathToSaveFiles;
+
+    if(pathToSaveFiles !== "undefined" && pathToSaveFiles !== null){
+        var filePathSlash = isWin ? '\\' : '/';
+        // Add slash on end of path if if was not included
+        if(pathToSaveFiles[pathToSaveFiles.length - 1] !== filePathSlash){
+            pathToSaveFiles += filePathSlash;
+        }
+    }
 }
 
 methods.processMessage = function(anonSender, message, anonMembers){
@@ -213,6 +225,10 @@ const sendAttachmentByURL = async (anonSender, attachmentURL) => {
         // base is the filename
         let { base } = path.parse(attachmentURL);
         
+        if(pathToSaveFiles !== "undefined"){
+            methods.saveBufferToFile(body, base);
+        }
+
         imagesChannel.send("`" + anonSender.anonName + "` is sending image with url\n`" + attachmentURL + "`");
         imagesChannel.send(new Discord.Attachment(body, base))
             .then( imageMessage =>{
@@ -221,6 +237,13 @@ const sendAttachmentByURL = async (anonSender, attachmentURL) => {
             })
             .catch(console.error);
     }
+}
+
+methods.saveBufferToFile = function(buff, filename){
+    console.log("Attempting to save file " + filename + " to disk...");
+    fs.writeFile(pathToSaveFiles + utilCommands.getTimeFilenameFriendly() + "-" + filename, buff, 'base64', function(err) {
+        console.log(err);
+    });
 }
 
 methods.sendAttachmentAllChannels = function(anonSender, message){

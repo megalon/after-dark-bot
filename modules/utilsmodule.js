@@ -35,6 +35,18 @@ methods.getTime = function(){
 	return (year + "-" + month + "-" + day + "-" + hour + ":" + minute + ":" + second + ":" + mili);
 }
 
+methods.getTimeFilenameFriendly = function(){
+	var date = new Date();
+	var year = date.getUTCFullYear();
+	var month = date.getUTCMonth();
+	var day = date.getUTCDate();
+	var hour = date.getUTCHours();
+	var minute = date.getUTCMinutes();
+	var second = date.getUTCSeconds();
+	var mili = date.getUTCMilliseconds();
+	return (year + "-" + month + "-" + day + "--" + hour + "-" + minute + "-" + second + "-" + mili);
+}
+
 methods.logMsg = function(msg){
 	console.log(methods.getTime() + " " + msg);
 }
