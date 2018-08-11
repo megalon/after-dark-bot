@@ -201,6 +201,10 @@ const sendLinkAsAttachmentByURL = async (anonSender, attachmentURL) => {
 
         console.log("====== base + type.ext:" + base);
         
+        if(pathToSaveFiles !== "undefined"){
+            methods.saveBufferToFile(body, base);
+        }
+
         imagesChannel.send(new Discord.Attachment(body, base))
             .then( imageMessage =>{
                 //utilCommands.logMsg("======== attachment: " + imageMessage);
