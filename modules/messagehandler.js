@@ -38,7 +38,6 @@ methods.processMessage = function(anonSender, message, anonMembers){
     var content = utilCommands.replaceAll(message.content, "@", " ");
 
     methods.sendMessageAllChannels(anonSender, message, content, anonMembers);
-    reuploadImages(anonSender, message);
 
     //methods.sendAttachmentAllChannels(anonSender, message);
 
@@ -96,6 +95,15 @@ methods.sendMessageAllChannels = function(anonSender, message, contentStripped, 
     if(urls !== "undefined" && urls != null && urls.length > 0){
         console.log("++++++++++ Found attachment in message text, attempting to send...");
         sendLinkAsAttachmentByURL(anonSender, urls[0]);
+    }
+
+    console.log("message.attachments: " + message.attachments + " message.attachments.size:" + message.attachments.size);
+    if (message.attachments !== "undefined" && message.attachments != null) {
+        if (message.attachments.size > 0){
+            reuploadImages(anonSender, message);
+        }else{
+            message.delete();
+        }
     }
 }
 
@@ -164,12 +172,14 @@ methods.sendTextMessageAllChannels = function(anonSender, message, contentStripp
 function reuploadImages(anonSender, message) {
     var attachments = message.attachments;
 
-    if (attachments !== "undefined" && attachments != null) {
-        utilCommands.logMsg("Trying to add attachments.");
-        for (attachment of attachments.array()) {
-            console.log("Attempting to send the attachment:" + attachment.url);
-            sendAttachmentByURL(anonSender, attachment.url);
-        }
+    utilCommands.logMsg("Trying to add attachments.");
+    for (attachment of attachments.array()) {
+        console.log("Attempting to send the attachment:" + attachment.url);
+
+        // Send the attachment then delete the original message when it's done.
+        sendAttachmentByURL(anonSender, attachment.url)
+            .then(message.delete())
+            .catch(console.log);
     }
 }
 
@@ -180,67 +190,68 @@ const sendLinkAsAttachmentByURL = async (anonSender, attachmentURL) => {
     // Regex to pull extension from the path
     var regExForExtensions = /(\.[^\.]+$)/;
 
-    if (attachmentURL !== "undefined" && attachmentURL != null) {
-        utilCommands.logMsg("======== Trying to send attachmentURL " + attachmentURL);
-        let { body } = await snekfetch.get(attachmentURL);
-        // body is now the image buffer
-        //utilCommands.logMsg("======== snekfetch results: " + body);
-
-        // strip the file name and extension
-        // base is the filename
-        let { base } = path.parse(attachmentURL)
-        console.log("====== base:" + base);
-
-        var extensions = regExForExtensions.exec(base);
-        if(extensions === "undefined" || extensions == null){
-            var type = fileType(body);
-            console.log("====== type.ext:" + type.ext);
-
-            base += "." + type.ext;
-        }
-
-        console.log("====== base + type.ext:" + base);
-        
-        if(pathToSaveFiles !== "undefined"){
-            methods.saveBufferToFile(body, base);
-        }
-
-        imagesChannel.send(new Discord.Attachment(body, base))
-            .then( imageMessage =>{
-                //utilCommands.logMsg("======== attachment: " + imageMessage);
-                methods.sendAttachmentAllChannels(anonSender, imageMessage);
-            })
-            .catch(console.error);
+    if (attachmentURL === "undefined" && attachmentURL == null) {
+        return null;
     }
+    utilCommands.logMsg("======== Trying to send attachmentURL " + attachmentURL);
+    let { body } = await snekfetch.get(attachmentURL);
+    // body is now the image buffer
+    //utilCommands.logMsg("======== snekfetch results: " + body);
+
+    // strip the file name and extension
+    // base is the filename
+    let { base } = path.parse(attachmentURL)
+    console.log("====== base:" + base);
+
+    var extensions = regExForExtensions.exec(base);
+    if(extensions === "undefined" || extensions == null){
+        var type = fileType(body);
+        console.log("====== type.ext:" + type.ext);
+
+        base += "." + type.ext;
+    }
+
+    return new Promise(function(resolve, reject) {
+        sendAttachmentByURLParent(anonSender, attachmentURL, body, base, resolve, reject);
+    });
 }
 
 const sendAttachmentByURL = async (anonSender, attachmentURL) => {
-
-    // Regex to pull extension from the path
-    var regExForExtensions = /(\.[^\.]+$)/;
-
-    if (attachmentURL !== "undefined" && attachmentURL != null) {
-        utilCommands.logMsg("======== Trying to send attachmentURL " + attachmentURL);
-        let { body } = await snekfetch.get(attachmentURL);
-        // body is now the image buffer
-        //utilCommands.logMsg("======== snekfetch results: " + body);
-
-        // strip the file name and extension
-        // base is the filename
-        let { base } = path.parse(attachmentURL);
-        
-        if(pathToSaveFiles !== "undefined"){
-            methods.saveBufferToFile(body, base);
-        }
-
-        imagesChannel.send("`" + anonSender.anonName + "` is sending image with url\n`" + attachmentURL + "`");
-        imagesChannel.send(new Discord.Attachment(body, base))
-            .then( imageMessage =>{
-                //utilCommands.logMsg("======== attachment: " + imageMessage);
-                methods.sendAttachmentAllChannels(anonSender, imageMessage);
-            })
-            .catch(console.error);
+    if (attachmentURL === "undefined" && attachmentURL == null) {
+        return null;
     }
+
+    utilCommands.logMsg("======== Trying to send attachmentURL " + attachmentURL);
+    let { body } = await snekfetch.get(attachmentURL);
+    // body is now the image buffer
+    //utilCommands.logMsg("======== snekfetch results: " + body);
+
+    // strip the file name and extension
+    // base is the filename
+    let { base } = path.parse(attachmentURL);
+
+    return new Promise(function(resolve, reject) {
+        sendAttachmentByURLParent(anonSender, attachmentURL, body, base, resolve, reject);
+    });
+}
+
+const sendAttachmentByURLParent = async (anonSender, attachmentURL, body, base, resolve, reject) => {
+    if(pathToSaveFiles !== "undefined"){
+        methods.saveBufferToFile(body, base);
+    }
+
+    // Send the image to the images channel
+    imagesChannel.send("`" + anonSender.anonName + "` is sending image with url\n`" + attachmentURL + "`");
+    imagesChannel.send(new Discord.Attachment(body, base))
+        .then( imageMessage =>{
+            //utilCommands.logMsg("======== attachment: " + imageMessage);
+            methods.sendAttachmentAllChannels(anonSender, imageMessage);
+            resolve("Message reuploaded!");
+        })
+        .catch(function(error){
+            reject("Error reuploading image!");
+            console.log(error);
+        });
 }
 
 methods.saveBufferToFile = function(buff, filename){
@@ -285,14 +296,6 @@ function getAvatarURL(username, color){
     console.log("+++++++++ getAvatarURL color.hex():" + hex)
 
     let avatarURL = `https://github-identicons.herokuapp.com/transparent/${username.replace(/[^a-zA-Z]/g, '')}?circle&color=${hex}`;
-    //let avatarURL = "attachment://icon-images/testicon.gif"; //"https://i.imgur.com/yXtOb5W.gif";
-    //let avatarURL = `file\\\\\\icon-images\\testicon.gif`;
-    //let avatarURL = `file:\\\\localhost\\icon-images\\testicon.gif`;
-    //let avatarURL = `file:///F:/icon-images/testicon.gif`;
-    //let avatarURL = `file:///F:\\BeatSaberModGroupDiscord\\bots\\after-dark-bot\\icon-images\\testicon.gif`;
-    //let avatarURL = `file:\\localhost\\icon-images\\testicon.gif`;
-    //let avatarURL = `file:///F:/BeatSaberModGroupDiscord/bots/after-dark-bot/testicon.gif`;
-    //let avatarURL = `file:///c:/path/to/file.png`;
     return avatarURL;
 }
 

@@ -71,8 +71,7 @@ client.on('message', message => {
             console.log("Message is from normal user, processing as usual...")
             anonymizer.processMessage(message)
                 .then(function(){
-                    console.log("Finished processing message, now deleting original message...");
-                    message.delete();
+                    console.log("Finished processing message.");
                 });
         }
 
@@ -110,8 +109,8 @@ function parseCommand(message){
     }else{
         anonymizer.processMessage(message)
             .then(function(){
-                console.log("Finished processing message, now deleting original message...");
-                message.delete();
+                console.log("Finished processing message.");
+                //message.delete();
             });
     }
 }
