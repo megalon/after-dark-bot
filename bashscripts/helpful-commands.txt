@@ -1,0 +1,4 @@
+systemctl --user enable AfterDark
+systemctl --user start AfterDark
+systemctl --user stop AfterDark # stops
+systemctl --user restart AfterDark # restarts
