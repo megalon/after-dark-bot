@@ -1,4 +1,4 @@
-    // JavaScript source code
+// JavaScript source code
 const Discord = require('discord.js');
 const client = new Discord.Client();
 const settings = require("./settings/settings.json");
@@ -8,6 +8,8 @@ var commandExecutor = require("./modules/commandexecutor.js");
 	
 client.login(settings.token);
 
+client.on('error', console.error);
+
 client.on('ready', () => {
     
     console.log("+++++++++++++ Ready! +++++++++++++");
@@ -16,7 +18,7 @@ client.on('ready', () => {
 	  .then(presence => console.log(`Activity set to ${presence.game ? presence.game.name : 'none'}`))
         .catch(console.error);
 
-	guildID = settings.guild;
+    guildID = settings.guild;
 		
     anonymizer.init(client, guildID);
     commandExecutor.init(client, guildID, anonymizer);
@@ -50,11 +52,6 @@ client.on('typingStop', (channel, user) => {
 
 client.on('message', message => {
 
-    // Ignore Webhooks
-    if (message.webhookID !== null){
-        return;
-    }
-
     // Check that this isn't the bot itself
     if (message.author == client.user){
         return;
@@ -74,10 +71,13 @@ client.on('message', message => {
             parseCommand(message);
         }else{
             console.log("Message is from normal user, processing as usual...")
-            anonymizer.processMessage(message);
+            anonymizer.processMessage(message)
+                .then(function(){
+                    console.log("Finished processing message.");
+                });
         }
 
-        message.delete();
+        //message.delete();
     }
 	
 	/* Log all role ids (the only way to get role IDs)
@@ -104,10 +104,15 @@ function parseCommand(message){
     if(command != null){
         if(command !== "invalid"){
             commandExecutor.runCommand(command, commandChannelName);
+            message.delete();
         }else{
             console.log("ERROR: Invalid command in message:" + message.content);
         }
     }else{
-        anonymizer.processMessage(message);
+        anonymizer.processMessage(message)
+            .then(function(){
+                console.log("Finished processing message.");
+                //message.delete();
+            });
     }
 }
