@@ -13,6 +13,7 @@ var iconURLs;
 var guild;
 
 var anonMembers = JSON.parse(fs.readFileSync('anonnames.json', 'utf8'));
+var monikerNames;
 
 methods = [];
 
@@ -22,6 +23,8 @@ methods.init = function(client, guildID){
     console.log(anonMembers);
 
     guild = client.guilds.get(guildID);
+   
+    //monikerNames = Moniker.generator(["settings/adjectives.txt", "settings/nouns.txt"]);
 	
 	// Check if members were added or removed while bot was offline
 	
@@ -86,89 +89,34 @@ methods.init = function(client, guildID){
 	messageHandler.init(client, guild, anonMembers);
 	channelManager.init(client, guild, anonMembers);
 	
-	
-	/*
-	//Old method with assistant.moe
-    getIconURLs("https://assistant.moe/avatars/")
-        .then(results => {
-            
-            iconURLs = results;
-
-            console.log("results:" + results);
-
-            console.log("+++++++++++++++++++++++ FINISHED getting icons!");
-
-            // Check if members were added or removed while bot was offline
-            guild.fetchMembers()
-            .then(guild => {
-                //console.log(guild.members);
-
-                // Check if members were added while offline
-                //for (member of guild.members) { 
-                for (member of guild.members.array()){
-                //guild.members.forEach(function (member) {
-                    console.log("MemberID: " + member.id);
-                    
-                    // Check if a channel exists for each member. If not, create it.
-                    if (guild.channels.exists('name', member.id)) {
-                        console.log("Found channel for member:" + member.id);
-                    } else {
-                        console.log("Didn't find channel for member:" + member.id + " !");
-                        console.log("Creating channel for member...");
-                        channelManager.addMember(member);
-                    }
-
-                    var anonMember = null;
-                    // Check if the members exist in the anonnames.json file 
-                    for(var i = 0; i < anonMembers.length; ++i){
-
-                        if(anonMembers[i].member === member.id){
-                            anonMember = anonMembers[i];
-                            console.log("Found anonMember for member:" + member.id);
-
-                            anonMembers[i].color = methods.getColor(anonMembers[i].anonName);
-                        }
-                    }
-
-                    if(anonMember == null){
-                        console.log("Didn't find member:" + member.id + " in anonnames.json!");
-                            
-                        console.log("Adding member to anonMembers array...");
-                        methods.pushMember(member);
-                        methods.saveNames();
-                    }else{
-                        if(anonMember.iconURL === "undefined" || anonMember.iconURL == null){
-                            console.log("Setting member icon for member " + member.id + "...");  
-                            methods.setIcon(anonMember);
-                        }
-                    }
-                }
-
-                // Check if members were removed while offline
-                //for (channel of guild.channels) {
-                for (channel of guild.channels.array()){
-                    if(!guild.members.exists('id', channel.name) && channel.name !== "images" && channel.name !== "images" ){
-                        // Channel is not needed, so delete it.
-                        channel.delete()
-                            .then(console.log)
-                            .catch(console.error);
-                    }
-                }
-            })
-            .catch(console.error);
-
-            messageHandler.init(client, guild, anonMembers);
-            channelManager.init(client, guild, anonMembers);
-        })
-        .catch();
-		*/
 }
 
 methods.pushMember = function(member){
-    var name = Moniker.choose();
+    let name = Moniker.choose()//`${getPrefix()}${monikerNames.choose()}`
+    let nameCollision = true;
+    while (nameCollision) {
+        nameCollision = false;
+        for(anonMember of anonMembers){
+            if(anonMember.anonName === name) {
+                nameCollision = true
+                console.log("Name collision! Getting new name...")
+                name = Moniker.choose()//`${getPrefix()}${monikerNames.choose()}`
+            }
+        }
+    }
+
     anonMembers.push({'member':member.id, 'anonName':name, 'color':this.getColor(name), 'iconURL':"null"});//this.setIcon(member)});
     console.log("Trying to push new member....................................................");
     console.log("color: " + this.getColor(name));
+}
+
+function getPrefix(){
+    let prefix
+    switch (Math.floor(Math.random() * 2)) {
+        case 0: prefix = ""; break;
+        case 1: prefix = "(The real) "; break;
+    }
+    return prefix
 }
 
 methods.popMember = function(member){
