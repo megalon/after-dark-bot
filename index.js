@@ -1,118 +1,123 @@
 // JavaScript source code
-const Discord = require('discord.js');
-const client = new Discord.Client();
-const settings = require("./settings/settings.json");
-var anonymizer  = require("./modules/anonymizer.js");
-var commandParser = require("./modules/commandparser.js");
-var commandExecutor = require("./modules/commandexecutor.js");
+const Discord = require('discord.js')
+const client = new Discord.Client()
+const settings = require("./settings/settings.json")
+var anonymizer  = require("./modules/anonymizer.js")
+var commandParser = require("./modules/commandparser.js")
+var commandExecutor = require("./modules/commandexecutor.js")
+var ttt = require("./modules/ttt.js")
 	
-client.login(settings.token);
+client.login(settings.token)
 
-client.on('error', console.error);
+client.on('error', console.error)
 
 client.on('ready', () => {
     
-    console.log("+++++++++++++ Ready! +++++++++++++");
+    console.log("+++++++++++++ Ready! +++++++++++++")
 
 	client.user.setActivity('', { type: '' })
 	  .then(presence => console.log(`Activity set to ${presence.game ? presence.game.name : 'none'}`))
-        .catch(console.error);
+        .catch(console.error)
 
-    guildID = settings.guild;
+    guildID = settings.guild
 		
-    anonymizer.init(client, guildID);
-    commandExecutor.init(client, guildID, anonymizer);
-});
+    anonymizer.init(client, guildID)
+    commandExecutor.init(client, guildID, anonymizer)
+})
 
 client.on('guildMemberAdd', member => {
-    anonymizer.addMember(member);
-});
+    anonymizer.addMember(member)
+})
 
 client.on('guildMemberRemove', member => {
-    //anonymizer.removeMember(member);
-});
+    //anonymizer.removeMember(member)
+})
 
 client.on('typingStart', (channel, user) => {
     if(user == client.user){
-        return;
+        return
     }
-    //anonymizer.removeMember(member);
-    //console.log("User:" + user.id + " started typing in channel:" + channel.name);
-    anonymizer.startTypingInOtherChannels(channel.name);
-});
+    //anonymizer.removeMember(member)
+    //console.log("User:" + user.id + " started typing in channel:" + channel.name)
+    anonymizer.startTypingInOtherChannels(channel.name)
+})
 
 client.on('typingStop', (channel, user) => {
     if(user == client.user){
-        return;
+        return
     }
-    //anonymizer.removeMember(member);
-    //console.log("User:" + user.id + " stopped typing in channel:" + channel.name);
-    anonymizer.stopTypingInOtherChannels(channel.name);
-});
+    //anonymizer.removeMember(member)
+    //console.log("User:" + user.id + " stopped typing in channel:" + channel.name)
+    anonymizer.stopTypingInOtherChannels(channel.name)
+})
 
 client.on('message', message => {
 
     // Check that this isn't the bot itself
     if (message.author == client.user){
-        return;
+        return
     }
 
     // Check if this is a dm
     if(message.channel.type == "dm"){
-        console.log("Message is a DM, returning...");
-        return;
+        anonymizer.processDM(message)
+        return
     }
 
     if (message.guild.id == guildID) {
-        console.log("Message is in correct guild!");
+        console.log("Message is in correct guild!")
 
-        if(checkAdmin(message)){
-            console.log("Found admin message, checking for commands...")
-            parseCommand(message);
+        if(settings.TTT){
+
         }else{
-            console.log("Message is from normal user, processing as usual...")
-            anonymizer.processMessage(message)
-                .then(function(){
-                    console.log("Finished processing message.");
-                });
+            if(checkAdmin(message)){
+                console.log("Found admin message, checking for commands...")
+                parseCommand(message)
+            }else{
+                console.log("Message is from normal user, processing as usual...")
+                anonymizer.processMessage(message)
+                    .then(function(){
+                        console.log("Finished processing message.")
+                    })
+            }
         }
 
-        //message.delete();
+        //message.delete()
     }
 	
 	/* Log all role ids (the only way to get role IDs)
 	for(var [key, value] of message.guild.roles){
-		console.log("role:" + value.name + " id:" + key);
+		console.log("role:" + value.name + " id:" + key)
 	}
 	*/
-});
+})
 
 function checkAdmin(message){
-    var isAdmin = false;
+    var isAdmin = false
     // Check if message is from an admin
     if(settings.adminIDs.includes(message.member.id)){
-        isAdmin = true;
+        isAdmin = true
     }
 
-    return isAdmin;
+    return isAdmin
 }
 
 function parseCommand(message){
-    var command = commandParser.parseCommand(message);
-    var commandChannelName = message.channel.name;
-    console.log("Command return:" + command);
+    var command = commandParser.parseCommand(message)
+    var commandChannelName = message.channel.name
+    console.log("Command return:" + command)
     if(command != null){
         if(command !== "invalid"){
-            commandExecutor.runCommand(command, commandChannelName);
-            message.delete();
+            commandExecutor.runCommand(command, commandChannelName)
+            message.delete()
         }else{
-            console.log("ERROR: Invalid command in message:" + message.content);
+            console.log("ERROR: Invalid command in message:" + message.content)
         }
     }else{
         anonymizer.processMessage(message)
             .then(function(){
-                console.log("Finished processing message.");
-                //message.delete();
-            });
+                console.log("Finished processing message.")
+                //message.delete()
+            })
     }
 }

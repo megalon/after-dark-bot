@@ -1,31 +1,31 @@
 // JavaScript source code
 
-var methods = [];
-const Discord = require('discord.js');
-const snekfetch = require('snekfetch');
-const settings = require("../settings/settings.json");
-var utilCommands = require("./utilsmodule.js");
-const path = require('path');
-const fileType = require('file-type');
-const fs = require('fs');
-var Color = require('color');
-var client;
-var guild;
-var imagesChannel;
-var pathToSaveFiles;
-var isWin = process.platform === "win32"; // Check if the OS is windows
+let methods = []
+const Discord = require('discord.js')
+const snekfetch = require('snekfetch')
+const settings = require("../settings/settings.json")
+let utilCommands = require("./utilsmodule.js")
+const path = require('path')
+const fileType = require('file-type')
+const fs = require('fs')
+let Color = require('color')
+let client
+let guild
+let imagesChannel
+let pathToSaveFiles
+let isWin = process.platform === "win32" // Check if the OS is windows
 
 methods.init = function(c, guildIn){
-    client = c;
-    guild = guildIn;
-    imagesChannel = guild.channels.find("name", "images");
-    pathToSaveFiles = settings.pathToSaveFiles;
+    client = c
+    guild = guildIn
+    imagesChannel = guild.channels.find("name", "images")
+    pathToSaveFiles = settings.pathToSaveFiles
 
     if(pathToSaveFiles !== "undefined" && pathToSaveFiles !== null){
-        var filePathSlash = isWin ? '\\' : '/';
+        let filePathSlash = isWin ? '\\' : '/'
         // Add slash on end of path if if was not included
         if(pathToSaveFiles[pathToSaveFiles.length - 1] !== filePathSlash){
-            pathToSaveFiles += filePathSlash;
+            pathToSaveFiles += filePathSlash
         }
     }
 }
@@ -33,159 +33,150 @@ methods.init = function(c, guildIn){
 methods.processMessage = function(anonSender, message, anonMembers){
 
     // Strip all @ pings
-    utilCommands.logMsg("Processing message...");
-    utilCommands.logMsg("Attempting to replace all @ characters");
-    var content = utilCommands.replaceAll(message.content, "@", " ");
+    utilCommands.logMsg("Processing message...")
+    utilCommands.logMsg("Attempting to replace all @ characters")
+    let content = utilCommands.replaceAll(message.content, "@", " ")
 
-    methods.sendMessageAllChannels(anonSender, message, content, anonMembers);
+    methods.sendMessageAllChannels(anonSender, message, content, anonMembers)
+    methods.sendAttachmentAllChannels(anonSender, message)
 
-    //methods.sendAttachmentAllChannels(anonSender, message);
-
-    utilCommands.logMsg("Finished processing message in messagehandler.js");
-}
-
-// Old ping function
-methods.pingMember = function(anonSenderName, receiverMemberID){
-    var contentStripped = "<@" + receiverMemberID + "> `You were pinged by " + anonSenderName + ". Only you can see this message.`";
-    methods.serverMessage(contentStripped, receiverMemberID);
-    //methods.sendMessageIndividual(anonSenderName, contentStripped, anonReceiverName, receiverMemberID);
+    utilCommands.logMsg("Finished processing message in messagehandler.js")
 }
 
 // WIP
 methods.serverMessage = function(messageText, receiverMemberID){
     for (channel of guild.channels.array()) {
         if (channel.name === receiverMemberID) {
-            utilCommands.logMsg("Sending server message to channel " + channel.id + " for userID " + receiverMemberID);
-            channel.send("**SERVER** " + messageText);
+            utilCommands.logMsg("Sending server message to channel " + channel.id + " for userID " + receiverMemberID)
+            channel.send("**SERVER** " + messageText)
         }
     }
 }
 
 // WIP private message
-methods.sendMessageIndividual = function(anonSenderName, contentStripped, anonReceiverName, receiverMemberID){
+methods.sendMessageIndividual = function(anonSender, message, receiverMemberID){
 
-    utilCommands.logMsg(anonSenderName + " is sending an individual message to: " + anonReceiverName + " userID: " + receiverMemberID);
+    utilCommands.logMsg(anonSender + " is sending an individual message to: " + " userID: " + receiverMemberID)
 
-    var text = contentStripped;
+    let text = message.content
+    let member = guild.members.get(receiverMemberID)
 
     if (text !== "undefined" && text != null && text != "") {
-        utilCommands.logMsg("text is defined, looking through guilds...");
-
-        for (channel of guild.channels.array()) {
-            if (channel.name === receiverMemberID) {
-                utilCommands.logMsg("Sending individual message to channel " + channel.id + " for userID " + receiverMemberID);
-                channel.send("**PRIV** `<" + anonSenderName + ">` " + text);
-            }
-        }
-
+        utilCommands.logMsg("Text is defined, sending DM...")
+        console.log(text)
+        let embededMessage = new Discord.RichEmbed()
+        
+        // Using this since assistant.moe is down
+        embededMessage.setAuthor(anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color))
+        embededMessage.setDescription(text)
+        embededMessage.setColor(anonSender.color.hex())
+        member.send({
+            embed: embededMessage
+          })
+            .catch(console.error)
     } else {
-        utilCommands.logMsg("text was undefined or null.");
+        utilCommands.logMsg("text was undefined or null.")
+    }
+
+    if (message.attachments.first() !== "undefined" && message.attachments.first() != null) {
+        let attachmentUrl = message.attachments.first().url
+        let embededMessage2 = new Discord.RichEmbed()
+        embededMessage2.setImage(attachmentUrl)
+        member.send({embed: embededMessage2})
+            .catch(console.error)
     }
 }
 
 methods.sendMessageAllChannels = function(anonSender, message, contentStripped, anonMembers){
     // Get any http or https link
-    var regExForLinks = /http(s?)\S*/;
-    var urls = regExForLinks.exec(contentStripped);
-    console.log(urls);
+    let regExForLinks = /http(s?)\S*/
+    let urls = regExForLinks.exec(contentStripped)
+    console.log(urls)
 
-    methods.sendTextMessageAllChannels(anonSender, message, contentStripped, anonMembers);
+    methods.sendTextMessageAllChannels(anonSender, message, contentStripped, anonMembers)
 
     // Send the embedded urls as an image
     if(urls !== "undefined" && urls != null && urls.length > 0){
-        console.log("++++++++++ Found attachment in message text, attempting to send...");
-        sendLinkAsAttachmentByURL(anonSender, urls[0]);
+        console.log("++++++++++ Found attachment in message text, attempting to send...")
+        sendLinkAsAttachmentByURL(anonSender, urls[0])
     }
 
-    console.log("message.attachments: " + message.attachments + " message.attachments.size:" + message.attachments.size);
+    console.log("message.attachments: " + message.attachments + " message.attachments.size:" + message.attachments.size)
     if (message.attachments !== "undefined" && message.attachments != null) {
         if (message.attachments.size > 0){
-            reuploadImages(anonSender, message);
+            reuploadImages(anonSender, message)
         }else{
-            message.delete();
+            message.delete()
         }
     }
 }
 
 methods.sendTextMessageAllChannels = function(anonSender, message, contentStripped, anonMembers){
     
-    var text = contentStripped;
-    var channelSpecificText = "";
+    let text = contentStripped
+    let channelSpecificText = ""
 
     if (text !== "undefined" && text != null && text != "") {
-        utilCommands.logMsg("text is defined, looking through guild " + guild.name + " ...");
-        utilCommands.logMsg("guild.channels " + guild.channels + " ...");
+        utilCommands.logMsg("text is defined, looking through guild " + guild.name + " ...")
+        utilCommands.logMsg("guild.channels " + guild.channels + " ...")
 
         for (channel of guild.channels.array()) {
 
-            console.log("channel.name:" + channel.name);
-            channelSpecificText = text;
+            console.log("channel.name:" + channel.name)
+            channelSpecificText = text
 
             if (channel.name != "images" && channel.name != "icons" && channel.type === "text") {
 
                 // Handle pings
-                for(var i=0; i < anonMembers.length; ++i){
-                    var anonReceiverName = anonMembers[i].anonName;
-                    var anonReceiverID = anonMembers[i].member;
+                for(let i=0; i < anonMembers.length; ++i){
+                    let anonReceiverName = anonMembers[i].anonName
+                    let anonReceiverID = anonMembers[i].member
 
-                    // console.log("Checking channel name:" + channel.name + " against userid:" + anonReceiverID);
+                    // console.log("Checking channel name:" + channel.name + " against userid:" + anonReceiverID)
 
                     // Replace username with a ping if this channel is for that user
                     if(anonReceiverID === channel.name){
-                        console.log("Attempting to replace " + anonReceiverName + " with " + anonReceiverID + " if it exists...");
-                        channelSpecificText = utilCommands.replaceAll(channelSpecificText, anonReceiverName, "<@!" + anonReceiverID + ">");
+                        console.log("Attempting to replace " + anonReceiverName + " with " + anonReceiverID + " if it exists...")
+                        channelSpecificText = utilCommands.replaceAll(channelSpecificText, anonReceiverName, "<@!" + anonReceiverID + ">")
                     }
                 }
 
-                utilCommands.logMsg("Sending message from memberID:" + message.member.id + " channelID:" + channel.name);
+                utilCommands.logMsg("Sending message from memberID:" + message.member.id + " channelID:" + channel.name)
 
-                //webhookSend(channel, channelSpecificText, anonSender.anonName, null);
-
-                console.log("sendMessageAllChannels anonSender.anonName:" + anonSender.anonName);
-                
-                var embededMessage = new Discord.RichEmbed();
+                console.log("sendMessageAllChannels anonSender.anonName:" + anonSender.anonName)
+                let embededMessage = new Discord.RichEmbed()
 				
 				// Using this since assistant.moe is down
-				embededMessage.setAuthor(anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color));
-
-				/* Back when assistant.moe was up
-                if(anonSender.iconURL === "undefined" || anonSender.iconURL == null)
-                    embededMessage.setAuthor(anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color));
-                else
-                    embededMessage.setAuthor(anonSender.anonName, anonSender.iconURL);
-				*/
-				
-                //embededMessage.setThumbnail(getAvatarURL(anonSender.anonName, anonSender.color));
-                //embededMessage.setFooter("!",getAvatarURL(anonSender.anonName, anonSender.color));
-                embededMessage.setDescription(channelSpecificText);
-                embededMessage.setColor(anonSender.color.hex());
+				embededMessage.setAuthor(anonSender.anonName, getAvatarURL(anonSender.anonName, anonSender.color))
+                embededMessage.setDescription(channelSpecificText)
+                embededMessage.setColor(anonSender.color.hex())
 
                 console.log("+++++++++ anonSender.color.hex():" + anonSender.color.hex())
 
                 channel.send({
                     embed: embededMessage
                   })
-                    .catch(console.error);
+                    .catch(console.error)
             }
 
         }
-        utilCommands.logMsg("Sent message to appropriate channels.");
+        utilCommands.logMsg("Sent message to appropriate channels.")
     } else {
-        utilCommands.logMsg("text was undefined or null.");
+        utilCommands.logMsg("text was undefined or null.")
     }
 }
 
 function reuploadImages(anonSender, message) {
-    var attachments = message.attachments;
+    let attachments = message.attachments
 
-    utilCommands.logMsg("Trying to add attachments.");
+    utilCommands.logMsg("Trying to add attachments.")
     for (attachment of attachments.array()) {
-        console.log("Attempting to send the attachment:" + attachment.url);
+        console.log("Attempting to send the attachment:" + attachment.url)
 
         // Send the attachment then delete the original message when it's done.
         sendAttachmentByURL(anonSender, attachment.url)
             //.then(message.delete())
-            //.catch(console.log);
+            //.catch(console.log)
     }
 }
 
@@ -194,100 +185,94 @@ function reuploadImages(anonSender, message) {
 const sendLinkAsAttachmentByURL = async (anonSender, attachmentURL) => {
 
     // Regex to pull extension from the path
-    var regExForExtensions = /(\.[^\.]+$)/;
+    let regExForExtensions = /(\.[^\.]+$)/
 
     if (attachmentURL === "undefined" && attachmentURL == null) {
-        return null;
+        return null
     }
-    utilCommands.logMsg("======== Trying to send attachmentURL " + attachmentURL);
-    let { body } = await snekfetch.get(attachmentURL);
+    utilCommands.logMsg("======== Trying to send attachmentURL " + attachmentURL)
+    let { body } = await snekfetch.get(attachmentURL)
     // body is now the image buffer
-    //utilCommands.logMsg("======== snekfetch results: " + body);
+    //utilCommands.logMsg("======== snekfetch results: " + body)
 
     // strip the file name and extension
     // base is the filename
     let { base } = path.parse(attachmentURL)
-    console.log("====== base:" + base);
+    console.log("====== base:" + base)
 
-    var extensions = regExForExtensions.exec(base);
+    let extensions = regExForExtensions.exec(base)
     if(extensions === "undefined" || extensions == null){
-        var type = fileType(body);
-        console.log("====== type.ext:" + type.ext);
+        let type = fileType(body)
+        console.log("====== type.ext:" + type.ext)
 
-        base += "." + type.ext;
+        base += "." + type.ext
     }
 
     return new Promise(function(resolve, reject) {
-        sendAttachmentByURLParent(anonSender, attachmentURL, body, base, resolve, reject);
-    });
+        sendAttachmentByURLParent(anonSender, attachmentURL, body, base, resolve, reject)
+    })
 }
 
 const sendAttachmentByURL = async (anonSender, attachmentURL) => {
     if (attachmentURL === "undefined" && attachmentURL == null) {
-        return null;
+        return null
     }
 
-    utilCommands.logMsg("======== Trying to send attachmentURL " + attachmentURL);
-    let { body } = await snekfetch.get(attachmentURL);
+    utilCommands.logMsg("======== Trying to send attachmentURL " + attachmentURL)
+    let { body } = await snekfetch.get(attachmentURL)
     // body is now the image buffer
-    //utilCommands.logMsg("======== snekfetch results: " + body);
+    //utilCommands.logMsg("======== snekfetch results: " + body)
 
     // strip the file name and extension
     // base is the filename
-    let { base } = path.parse(attachmentURL);
+    let { base } = path.parse(attachmentURL)
 
     return new Promise(function(resolve, reject) {
-        sendAttachmentByURLParent(anonSender, attachmentURL, body, base, resolve, reject);
-    });
+        sendAttachmentByURLParent(anonSender, attachmentURL, body, base, resolve, reject)
+    })
 }
 
 const sendAttachmentByURLParent = async (anonSender, attachmentURL, body, base, resolve, reject) => {
     if(pathToSaveFiles !== "undefined"){
-        methods.saveBufferToFile(body, base);
+        methods.saveBufferToFile(body, base)
     }
 
     // Send the image to the images channel
-    imagesChannel.send("`" + anonSender.anonName + "` is sending image with url\n`" + attachmentURL + "`");
+    imagesChannel.send("`" + anonSender.anonName + "` is sending image with url\n`" + attachmentURL + "`")
     imagesChannel.send(new Discord.Attachment(body, base))
         .then( imageMessage =>{
-            //utilCommands.logMsg("======== attachment: " + imageMessage);
-            methods.sendAttachmentAllChannels(anonSender, imageMessage);
-            resolve("Message reuploaded!");
+            //utilCommands.logMsg("======== attachment: " + imageMessage)
+            methods.sendAttachmentAllChannels(anonSender, imageMessage)
+            resolve("Message reuploaded!")
         })
         .catch(function(error){
-            reject("Error reuploading image!");
-            console.log(error);
-        });
+            reject("Error reuploading image!")
+            console.log(error)
+        })
 }
 
 methods.saveBufferToFile = function(buff, filename){
-    console.log("Attempting to save file " + filename + " to disk...");
+    console.log("Attempting to save file " + filename + " to disk...")
     fs.writeFile(pathToSaveFiles + utilCommands.getTimeFilenameFriendly() + "-" + filename, buff, 'base64', function(err) {
-        console.log(err);
-    });
+        console.log(err)
+    })
 }
 
 methods.sendAttachmentAllChannels = function(anonSender, message){
-    var attachmentUrl = message.attachments.array()[0].url;
+    let attachmentUrl = message.attachments.array()[0].url
 
     for (channel of guild.channels.array()) {
-        utilCommands.logMsg("memberID:" + message.member.id + " channelID:" + channel.name + " attachmentUrl:" + attachmentUrl);
+        utilCommands.logMsg("memberID:" + message.member.id + " channelID:" + channel.name + " attachmentUrl:" + attachmentUrl)
         if (channel.name != "images" && channel.name != "icons" && channel.type === "text") {
 
-            //console.log("anonSender.anonName:" + anonSender.anonName);
+            //console.log("anonSender.anonName:" + anonSender.anonName)
 
-            var embededMessage = new Discord.RichEmbed();
+            let embededMessage = new Discord.RichEmbed()
 
-            //if(!settings.adminIDs.includes(channel.name)){
-            //embededMessage.setAuthor(anonSender.anonName, anonSender.iconURL);//getAvatarURL(anonSender.anonName, anonSender.color));
-            //embededMessage.setColor(anonSender.color.hex());
-            embededMessage.setImage(attachmentUrl);
-            //embededMessage.setThumbnail(getAvatarURL(anonSender.anonName, anonSender.color));
-            //embededMessage.setFooter("!", getAvatarURL(anonSender.anonName, anonSender.color));
-            //embededMessage.setTimestamp();
+            embededMessage.setImage(attachmentUrl)
 
             channel.send({embed: embededMessage})
-                .catch(console.error);
+                .catch(console.error)
         }
     }
 }
@@ -298,11 +283,11 @@ methods.sendAttachmentAllChannels = function(anonSender, message){
  * @param {Color} color Color object
  */
 function getAvatarURL(username, color){
-    var hex = color.hex().replace(/[^a-zA-Z0-9]/g, '');
+    let hex = color.hex().replace(/[^a-zA-Z0-9]/g, '')
     console.log("+++++++++ getAvatarURL color.hex():" + hex)
 
-    let avatarURL = `https://github-identicons.herokuapp.com/transparent/${username.replace(/[^a-zA-Z]/g, '')}?circle&color=${hex}`;
-    return avatarURL;
+    let avatarURL = `https://github-identicons.herokuapp.com/transparent/${username.replace(/[^a-zA-Z]/g, '')}?circle&color=${hex}`
+    return avatarURL
 }
 
 /**
@@ -315,27 +300,26 @@ function getAvatarURL(username, color){
  */
 const webhookSend = async (channel, content, username, avatar) => {
 
-    console.log("Using the webhook send function...");
+    console.log("Using the webhook send function...")
 
     // List webhooks
-    let hooks = await channel.fetchWebhooks().catch(console.error);
+    let hooks = await channel.fetchWebhooks().catch(console.error)
 
-    console.log("+++++++++++++++++++++ hooks:\n" + hooks);
+    console.log("+++++++++++++++++++++ hooks:\n" + hooks)
 
     // Create a webhook if one doesn't exist
     if (hooks.array().length === 0) {
-        await channel.createWebhook(channel.name).catch(console.error);;
+        await channel.createWebhook(channel.name).catch(console.error)
     }
 
     // Generate default avatar if no URL is specified
     let avatarURL = avatar ? avatar :
-    `https://identicon-api.herokuapp.com/${username.replace(/[^a-zA-Z]/g, '')}/256?format=png`;
+    `https://identicon-api.herokuapp.com/${username.replace(/[^a-zA-Z]/g, '')}/256?format=png`
 
     // Update webhook list
-    let hook = (await channel.fetchWebhooks()).first().catch(console.error);;
+    let hook = (await channel.fetchWebhooks()).first().catch(console.error)
 
-    return hook.send(content, { username, avatarURL });
+    return hook.send(content, { username, avatarURL })
 }
-
 
 module.exports = methods;
